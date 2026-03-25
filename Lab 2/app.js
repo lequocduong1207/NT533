@@ -39,17 +39,19 @@ async function checkToken() {
 
 // Liệt kê các Flavor, Image
 async function listFlavor(xAuthToken) {
-    const response = await fetch(`${INDENTITY_URL}flavors`, {
+    const response = await fetch(`${COMPUTE_URL}flavors`, {
         method: 'GET',
         headers: {
             'Content-Type': 'application/json',
             'X-Auth-Token': xAuthToken
         }
     });
+
     const data = await response.json();
+    return data?.flavors;
 }
 
-async function listImage() {
+async function listImage(xAuthToken) {
     const response = await fetch(`${COMPUTE_URL}images`, {
         method: 'GET',
         headers: {
@@ -58,12 +60,14 @@ async function listImage() {
         }
     });
     const data = await response.json();
+
+    return data?.images;
 }
 
 async function startApp() {
     const xAuthToken = await checkToken();
-    console.log
-    await listFlavor(xAuthToken);
+    // console.log(await listFlavor(xAuthToken));
+    // console.log(await listImage(xAuthToken));
 }
 
 await startApp();
