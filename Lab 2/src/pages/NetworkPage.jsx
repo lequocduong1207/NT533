@@ -184,6 +184,7 @@ export default function NetworkPage({ token }) {
     }
   }
 
+
   if (loading) {
     return <p>Đang tải network...</p>;
   }
@@ -324,6 +325,7 @@ export default function NetworkPage({ token }) {
           )}
         </div>
       </div>
+
     </section>
   );
 }

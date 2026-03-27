@@ -8,6 +8,32 @@ const jsonHeaders = {
   'Content-Type': 'application/json'
 };
 
+function withQuery(url, query = {}, fields = []) {
+  const search = new URLSearchParams();
+
+  Object.entries(query).forEach(([key, value]) => {
+    if (value === undefined || value === null || value === '') {
+      return;
+    }
+    search.append(key, String(value));
+  });
+
+  if (Array.isArray(fields)) {
+    fields.forEach((field) => {
+      if (field) {
+        search.append('fields', field);
+      }
+    });
+  }
+
+  const queryString = search.toString();
+  if (!queryString) {
+    return url;
+  }
+
+  return `${url}?${queryString}`;
+}
+
 export async function fetchCheckToken(username, password) {
   const response = await axios.post(
     `${IDENTITY_URL}/auth/tokens`,
@@ -51,6 +77,44 @@ export async function fetchNetworks(token) {
   });
 
   return response.data?.networks || [];
+}
+
+export async function fetchRouters(token, query = {}) {
+  const response = await axios.get(`${NETWORK_URL}/routers`, {
+    headers: {
+      ...jsonHeaders,
+      'X-Auth-Token': token
+    },
+    params: query
+  });
+
+  return response.data?.routers || [];
+}
+
+export async function createRouter(token, payload) {
+  const response = await axios.post(
+    `${NETWORK_URL}/routers`,
+    {
+      router: payload
+    },
+    {
+      headers: {
+        ...jsonHeaders,
+        'X-Auth-Token': token
+      }
+    }
+  );
+
+  return response.data?.router;
+}
+
+export async function deleteRouter(token, routerId) {
+  await axios.delete(`${NETWORK_URL}/routers/${routerId}`, {
+    headers: {
+      ...jsonHeaders,
+      'X-Auth-Token': token
+    }
+  });
 }
 
 export async function createNetwork(token, name) {
@@ -120,6 +184,154 @@ export async function createSubnet(token, payload) {
   );
 
   return response.data?.subnet;
+}
+
+export async function fetchFloatingIps(token, query = {}) {
+  const response = await axios.get(`${NETWORK_URL}/floatingips`, {
+    headers: {
+      ...jsonHeaders,
+      'X-Auth-Token': token
+    },
+    params: query
+  });
+
+  return response.data?.floatingips || [];
+}
+
+export async function createFloatingIp(token, payload) {
+  const response = await axios.post(
+    `${NETWORK_URL}/floatingips`,
+    {
+      floatingip: payload
+    },
+    {
+      headers: {
+        ...jsonHeaders,
+        'X-Auth-Token': token
+      }
+    }
+  );
+
+  return response.data?.floatingip;
+}
+
+export async function fetchFloatingIpDetail(token, floatingIpId, fields = []) {
+  const params = {};
+  if (Array.isArray(fields) && fields.length) {
+    params.fields = fields;
+  }
+
+  const response = await axios.get(`${NETWORK_URL}/floatingips/${floatingIpId}`, {
+    headers: {
+      ...jsonHeaders,
+      'X-Auth-Token': token
+    },
+    params
+  });
+
+  return response.data?.floatingip;
+}
+
+export async function updateFloatingIp(token, floatingIpId, payload) {
+  const response = await axios.put(
+    `${NETWORK_URL}/floatingips/${floatingIpId}`,
+    {
+      floatingip: payload
+    },
+    {
+      headers: {
+        ...jsonHeaders,
+        'X-Auth-Token': token
+      }
+    }
+  );
+
+  return response.data?.floatingip;
+}
+
+export async function deleteFloatingIp(token, floatingIpId) {
+  await axios.delete(`${NETWORK_URL}/floatingips/${floatingIpId}`, {
+    headers: {
+      ...jsonHeaders,
+      'X-Auth-Token': token
+    }
+  });
+}
+
+export async function fetchRouterConntrackHelpers(token, routerId, query = {}, fields = []) {
+  const url = withQuery(`${NETWORK_URL}/routers/${routerId}/conntrack_helpers`, query, fields);
+  const response = await axios.get(url, {
+    headers: {
+      ...jsonHeaders,
+      'X-Auth-Token': token
+    }
+  });
+
+  return response.data?.conntrack_helpers || [];
+}
+
+export async function createRouterConntrackHelper(token, routerId, payload) {
+  const response = await axios.post(
+    `${NETWORK_URL}/routers/${routerId}/conntrack_helpers`,
+    {
+      conntrack_helper: payload
+    },
+    {
+      headers: {
+        ...jsonHeaders,
+        'X-Auth-Token': token
+      }
+    }
+  );
+
+  return response.data?.conntrack_helper;
+}
+
+export async function fetchRouterConntrackHelperDetail(
+  token,
+  routerId,
+  conntrackHelperId,
+  fields = []
+) {
+  const url = withQuery(
+    `${NETWORK_URL}/routers/${routerId}/conntrack_helpers/${conntrackHelperId}`,
+    {},
+    fields
+  );
+  const response = await axios.get(url, {
+    headers: {
+      ...jsonHeaders,
+      'X-Auth-Token': token
+    }
+  });
+
+  return response.data?.conntrack_helper;
+}
+
+export async function updateRouterConntrackHelper(token, routerId, conntrackHelperId, payload) {
+  const response = await axios.put(
+    `${NETWORK_URL}/routers/${routerId}/conntrack_helpers/${conntrackHelperId}`,
+    {
+      conntrack_helper: payload
+    },
+    {
+      headers: {
+        ...jsonHeaders,
+        'X-Auth-Token': token
+      }
+    }
+  );
+
+  return response.data?.conntrack_helper;
+}
+
+export async function deleteRouterConntrackHelper(token, routerId, conntrackHelperId) {
+  await axios.delete(`${NETWORK_URL}/routers/${routerId}/conntrack_helpers/${conntrackHelperId}`, {
+    headers: {
+      ...jsonHeaders,
+      'X-Auth-Token': token
+    }
+  });
 }
 
 export async function fetchFlavors(token) {
