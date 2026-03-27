@@ -76,31 +76,59 @@ input {
 
 .app-shell {
   min-height: 100vh;
+  display: grid;
+  grid-template-columns: 240px minmax(0, 1fr);
 }
 
-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  gap: 12px;
-  border-bottom: 1px solid #ddd;
+.side-nav {
+  border-right: 1px solid #ddd;
   background: #fff;
-  padding: 10px 16px;
-}
-
-nav {
+  padding: 16px;
   display: flex;
-  gap: 12px;
+  flex-direction: column;
+  gap: 16px;
 }
 
-nav a {
+.side-nav h2 {
+  margin: 0;
+  font-size: 18px;
+}
+
+.side-nav nav {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.side-nav a {
   color: #222;
   text-decoration: none;
-  padding: 4px 0;
+  padding: 8px 10px;
+  border-radius: 4px;
 }
 
-main {
+.side-nav a.active {
+  background: #efefef;
+  font-weight: 600;
+}
+
+.nav-group {
+  margin-top: 8px;
+  border-top: 1px dashed #ddd;
+  padding-top: 8px;
+  display: grid;
+  gap: 6px;
+}
+
+.nav-group p {
+  margin: 0;
+  color: #666;
+  font-size: 13px;
+}
+
+.content-panel {
   padding: 16px;
+  overflow: auto;
 }
 
 table {
@@ -122,4 +150,85 @@ td {
 h2,
 h3 {
   margin-top: 0;
+}
+
+.network-page {
+  display: grid;
+  gap: 12px;
+}
+
+.network-toolbar {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.network-toolbar input {
+  min-width: 220px;
+}
+
+.network-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr);
+  gap: 12px;
+}
+
+.network-list,
+.network-detail {
+  background: #fff;
+  border: 1px solid #ddd;
+  padding: 10px;
+}
+
+.row-active {
+  background: #f5f9ff;
+}
+
+.detail-actions {
+  border-bottom: 1px solid #ddd;
+  margin-bottom: 10px;
+  padding-bottom: 10px;
+}
+
+.detail-actions label {
+  display: block;
+  font-size: 13px;
+  margin-bottom: 6px;
+}
+
+.inline-form {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+
+.inline-form input {
+  flex: 1;
+}
+
+.subnet-form {
+  flex-wrap: wrap;
+}
+
+.detail-info p {
+  margin: 6px 0;
+}
+
+@media (max-width: 960px) {
+  .app-shell {
+    grid-template-columns: 1fr;
+  }
+
+  .side-nav {
+    border-right: none;
+    border-bottom: 1px solid #ddd;
+  }
+
+  .network-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .network-toolbar {
+    flex-wrap: wrap;
+  }
 }

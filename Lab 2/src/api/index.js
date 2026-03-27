@@ -53,6 +53,75 @@ export async function fetchNetworks(token) {
   return response.data?.networks || [];
 }
 
+export async function createNetwork(token, name) {
+  const response = await axios.post(
+    `${NETWORK_URL}/networks`,
+    {
+      network: {
+        name,
+        admin_state_up: true
+      }
+    },
+    {
+      headers: {
+        ...jsonHeaders,
+        'X-Auth-Token': token
+      }
+    }
+  );
+
+  return response.data?.network;
+}
+
+export async function deleteNetworks(token, networkIds) {
+  await Promise.all(
+    networkIds.map((id) =>
+      axios.delete(`${NETWORK_URL}/networks/${id}`, {
+        headers: {
+          ...jsonHeaders,
+          'X-Auth-Token': token
+        }
+      })
+    )
+  );
+}
+
+export async function updateNetworkName(token, networkId, name) {
+  const response = await axios.put(
+    `${NETWORK_URL}/networks/${networkId}`,
+    {
+      network: {
+        name
+      }
+    },
+    {
+      headers: {
+        ...jsonHeaders,
+        'X-Auth-Token': token
+      }
+    }
+  );
+
+  return response.data?.network;
+}
+
+export async function createSubnet(token, payload) {
+  const response = await axios.post(
+    `${NETWORK_URL}/subnets`,
+    {
+      subnet: payload
+    },
+    {
+      headers: {
+        ...jsonHeaders,
+        'X-Auth-Token': token
+      }
+    }
+  );
+
+  return response.data?.subnet;
+}
+
 export async function fetchFlavors(token) {
   const response = await axios.get(`${COMPUTE_URL}/flavors`, {
     headers: {

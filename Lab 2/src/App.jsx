@@ -1,8 +1,10 @@
-import { useState } from 'react';
-import { Link, Navigate, Route, Routes, useNavigate } from 'react-router-dom';
+import { useEffect, useState } from 'react';
+import { Link, Navigate, Route, Routes, useLocation, useNavigate } from 'react-router-dom';
 import { fetchCheckToken } from './api';
 import NetworkPage from './pages/NetworkPage';
 import ComputePage from './pages/ComputePage';
+
+const TOKEN_STORAGE_KEY = 'lab2_auth_token';
 
 function LoginPage({ token, setToken }) {
   const [username, setUsername] = useState('');
@@ -11,11 +13,15 @@ function LoginPage({ token, setToken }) {
   const [error, setError] = useState('');
   const navigate = useNavigate();
 
+  if (token) {
+    return <Navigate to="/network" replace />;
+  }
+
   async function handleLogin(event) {
     event.preventDefault();
 
     if (!username || !password) {
-      setError('Vui long nhap username va password.');
+      setError('Vui lòng nhập username và password.');
       return;
     }
 
@@ -31,9 +37,9 @@ function LoginPage({ token, setToken }) {
         return;
       }
 
-      setError('Dang nhap that bai.');
+      setError('Đăng nhập thất bại.');
     } catch (e) {
-      setError(e.response?.data?.message || 'Sai tai khoan hoac mat khau.');
+      setError(e.response?.data?.message || 'Sai tài khoản hoặc mật khẩu.');
     } finally {
       setLoading(false);
     }
@@ -42,8 +48,7 @@ function LoginPage({ token, setToken }) {
   return (
     <div className="login-wrap">
       <form className="login-card" onSubmit={handleLogin}>
-        <h1>Lab 2 Login</h1>
-        <p className="sub">Dang nhap bang username/password de goi ham checkToken.</p>
+        <h1>Login</h1>
 
         <label htmlFor="username">Username</label>
         <input
@@ -66,7 +71,7 @@ function LoginPage({ token, setToken }) {
         />
 
         <button type="submit" className="btn primary" disabled={loading}>
-          {loading ? 'Dang dang nhap...' : 'Dang nhap'}
+          {loading ? 'Đang đăng nhập...' : 'Đăng nhập'}
         </button>
 
         {error && <p className="error">{error}</p>}
@@ -76,26 +81,48 @@ function LoginPage({ token, setToken }) {
 }
 
 function ProtectedLayout({ token, onLogout }) {
+  const location = useLocation();
+
   if (!token) {
     return <Navigate to="/" replace />;
   }
 
   return (
     <div className="app-shell">
-      <header>
+      <aside className="side-nav">
+        <h2>Resources</h2>
         <nav>
-          <Link to="/network">Network</Link>
-          <Link to="/compute">Compute</Link>
+          <Link className={location.pathname.startsWith('/network') ? 'active' : ''} to="/network">
+            Network
+          </Link>
+
+          <div className="nav-group">
+            <p>Compute</p>
+            <Link
+              className={location.pathname.startsWith('/compute/flavor') ? 'active' : ''}
+              to="/compute/flavor"
+            >
+              Flavor
+            </Link>
+            <Link
+              className={location.pathname.startsWith('/compute/image') ? 'active' : ''}
+              to="/compute/image"
+            >
+              Image
+            </Link>
+          </div>
         </nav>
         <button type="button" className="btn" onClick={onLogout}>
-          Logout
+          Đăng xuất
         </button>
-      </header>
+      </aside>
 
-      <main>
+      <main className="content-panel">
         <Routes>
           <Route path="/network" element={<NetworkPage token={token} />} />
-          <Route path="/compute" element={<ComputePage token={token} />} />
+          <Route path="/compute/flavor" element={<ComputePage token={token} view="flavor" />} />
+          <Route path="/compute/image" element={<ComputePage token={token} view="image" />} />
+          <Route path="/compute" element={<Navigate to="/compute/flavor" replace />} />
           <Route path="*" element={<Navigate to="/network" replace />} />
         </Routes>
       </main>
@@ -104,10 +131,20 @@ function ProtectedLayout({ token, onLogout }) {
 }
 
 export default function App() {
-  const [token, setToken] = useState('');
+  const [token, setToken] = useState(() => localStorage.getItem(TOKEN_STORAGE_KEY) || '');
+
+  useEffect(() => {
+    if (token) {
+      localStorage.setItem(TOKEN_STORAGE_KEY, token);
+      return;
+    }
+
+    localStorage.removeItem(TOKEN_STORAGE_KEY);
+  }, [token]);
 
   function handleLogout() {
     setToken('');
+    localStorage.removeItem(TOKEN_STORAGE_KEY);
   }
 
   return (
