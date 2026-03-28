@@ -107,6 +107,12 @@ function ProtectedLayout({ token, onLogout }) {
           <div className="nav-group">
             <p>Compute</p>
             <Link
+              className={location.pathname.startsWith('/compute/instance') ? 'active' : ''}
+              to="/compute/instance"
+            >
+              Instance
+            </Link>
+            <Link
               className={location.pathname.startsWith('/compute/flavor') ? 'active' : ''}
               to="/compute/flavor"
             >
@@ -131,6 +137,7 @@ function ProtectedLayout({ token, onLogout }) {
           <Route path="/floating" element={<FloatingPage token={token} />} />
           <Route path="/router" element={<RouterPage token={token} />} />
           <Route path="/compute/flavor" element={<ComputePage token={token} view="flavor" />} />
+          <Route path="/compute/instance" element={<ComputePage token={token} view="instance" />} />
           <Route path="/compute/image" element={<ComputePage token={token} view="image" />} />
           <Route path="/compute" element={<Navigate to="/compute/flavor" replace />} />
           <Route path="*" element={<Navigate to="/network" replace />} />

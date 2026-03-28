@@ -2,10 +2,13 @@ import { useEffect, useState } from 'react';
 import {
   createNetwork,
   createSubnet,
+  deleteSubnet,
   deleteNetworks,
   fetchNetworks,
+  fetchSubnets,
+  updateSubnet,
   updateNetworkName
-} from '../api';
+} from '../api/networks';
 
 export default function NetworkPage({ token }) {
   const [items, setItems] = useState([]);
@@ -15,16 +18,22 @@ export default function NetworkPage({ token }) {
   const [renameValue, setRenameValue] = useState('');
   const [subnetName, setSubnetName] = useState('');
   const [subnetCidr, setSubnetCidr] = useState('192.168.10.0/24');
+  const [subnetItems, setSubnetItems] = useState([]);
+  const [editingSubnetId, setEditingSubnetId] = useState('');
+  const [editSubnetName, setEditSubnetName] = useState('');
+  const [editSubnetCidr, setEditSubnetCidr] = useState('');
   const [loading, setLoading] = useState(true);
   const [processing, setProcessing] = useState(false);
-  const [error, setError] = useState('');
+  const [showAddNetworkModal, setShowAddNetworkModal] = useState(false);
+  const [modalSubnetName, setModalSubnetName] = useState('');
+  const [modalSubnetCidr, setModalSubnetCidr] = useState('192.168.10.0/24');
+  const [notification, setNotification] = useState(null); // { type: 'success' | 'error', message: string }
 
   useEffect(() => {
     let mounted = true;
 
     async function load() {
       setLoading(true);
-      setError('');
       try {
         const data = await fetchNetworks(token);
         if (mounted) {
@@ -36,7 +45,7 @@ export default function NetworkPage({ token }) {
         }
       } catch (e) {
         if (mounted) {
-          setError(e.message || 'Không thể tải dữ liệu network.');
+          showNotification('error', e.message || 'Không thể tải dữ liệu network.');
         }
       } finally {
         if (mounted) {
@@ -51,7 +60,43 @@ export default function NetworkPage({ token }) {
     };
   }, [token]);
 
+  useEffect(() => {
+    let mounted = true;
+
+    async function loadSubnets() {
+      if (!activeNetworkId) {
+        setSubnetItems([]);
+        return;
+      }
+
+      try {
+        const data = await fetchSubnets(token, activeNetworkId);
+        if (mounted) {
+          setSubnetItems(data || []);
+        }
+      } catch (e) {
+        if (mounted) {
+          showNotification('error', e.response?.data?.message || 'Không tải được danh sách subnet.');
+        }
+      }
+    }
+
+    loadSubnets();
+
+    return () => {
+      mounted = false;
+    };
+  }, [token, activeNetworkId]);
+
   const activeNetwork = items.find((item) => item.id === activeNetworkId);
+
+  // Helper function to show notifications with auto-dismiss
+  function showNotification(type, message) {
+    setNotification({ type, message });
+    setTimeout(() => {
+      setNotification(null);
+    }, 3000); // Auto dismiss after 3 seconds
+  }
 
   function toggleNetwork(id, checked) {
     setSelectedIds((prev) => {
@@ -69,24 +114,67 @@ export default function NetworkPage({ token }) {
   function selectActive(network) {
     setActiveNetworkId(network.id);
     setRenameValue(network.name || '');
+    setEditingSubnetId('');
+    setEditSubnetName('');
+    setEditSubnetCidr('');
+  }
+
+  function startEditSubnet(subnet) {
+    setEditingSubnetId(subnet.id);
+    setEditSubnetName(subnet.name || '');
+    setEditSubnetCidr(subnet.cidr || '');
+  }
+
+  function cancelEditSubnet() {
+    setEditingSubnetId('');
+    setEditSubnetName('');
+    setEditSubnetCidr('');
   }
 
   async function handleAddNetwork() {
     if (!newNetworkName.trim()) {
-      setError('Vui lòng nhập tên network mới.');
+      showNotification('error', 'Vui lòng nhập tên network mới.');
       return;
     }
 
-    setError('');
     setProcessing(true);
     try {
       const created = await createNetwork(token, newNetworkName.trim());
       setItems((prev) => [created, ...prev]);
+      
+      // Add subnet if CIDR is provided
+      if (modalSubnetCidr.trim()) {
+        try {
+          const createdSubnet = await createSubnet(token, {
+            name: modalSubnetName.trim() || 'subnet-' + created.id.substring(0, 8),
+            network_id: created.id,
+            ip_version: 4,
+            cidr: modalSubnetCidr.trim(),
+            enable_dhcp: true
+          });
+
+          setItems((prev) =>
+            prev.map((item) =>
+              item.id === created.id
+                ? { ...item, subnets: [...(item.subnets || []), createdSubnet.id] }
+                : item
+            )
+          );
+        } catch (subnetError) {
+          console.warn('Thêm subnet không thành công, nhưng network đã được tạo:', subnetError);
+        }
+      }
+
+      // Reset form
       setNewNetworkName('');
+      setModalSubnetName('');
+      setModalSubnetCidr('192.168.10.0/24');
+      setShowAddNetworkModal(false);
       setActiveNetworkId(created.id);
       setRenameValue(created.name || '');
+      showNotification('success', 'Tạo network thành công!');
     } catch (e) {
-      setError(e.response?.data?.message || 'Không tạo được network.');
+      showNotification('error', e.response?.data?.message || 'Không tạo được network.');
     } finally {
       setProcessing(false);
     }
@@ -94,11 +182,10 @@ export default function NetworkPage({ token }) {
 
   async function handleDeleteSelected() {
     if (!selectedIds.length) {
-      setError('Vui lòng chọn network cần xóa.');
+      showNotification('error', 'Vui lòng chọn network cần xóa.');
       return;
     }
 
-    setError('');
     setProcessing(true);
     try {
       await deleteNetworks(token, selectedIds);
@@ -109,8 +196,9 @@ export default function NetworkPage({ token }) {
         setActiveNetworkId('');
         setRenameValue('');
       }
+      showNotification('success', 'Xóa network thành công!');
     } catch (e) {
-      setError(e.response?.data?.message || 'Không xóa được network.');
+      showNotification('error', e.response?.data?.message || 'Không xóa được network.');
     } finally {
       setProcessing(false);
     }
@@ -118,24 +206,24 @@ export default function NetworkPage({ token }) {
 
   async function handleRenameNetwork() {
     if (!activeNetworkId) {
-      setError('Vui lòng chọn network để sửa tên.');
+      showNotification('error', 'Vui lòng chọn network để sửa tên.');
       return;
     }
 
     if (!renameValue.trim()) {
-      setError('Tên network không được để trống.');
+      showNotification('error', 'Tên network không được để trống.');
       return;
     }
 
-    setError('');
     setProcessing(true);
     try {
       const updated = await updateNetworkName(token, activeNetworkId, renameValue.trim());
       setItems((prev) =>
         prev.map((item) => (item.id === activeNetworkId ? { ...item, ...updated } : item))
       );
+      showNotification('success', 'Sửa tên network thành công!');
     } catch (e) {
-      setError(e.response?.data?.message || 'Không sửa được tên network.');
+      showNotification('error', e.response?.data?.message || 'Không sửa được tên network.');
     } finally {
       setProcessing(false);
     }
@@ -143,16 +231,15 @@ export default function NetworkPage({ token }) {
 
   async function handleAddSubnet() {
     if (!activeNetworkId) {
-      setError('Vui lòng chọn network để thêm subnet.');
+      showNotification('error', 'Vui lòng chọn network để thêm subnet.');
       return;
     }
 
     if (!subnetCidr.trim()) {
-      setError('Vui lòng nhập CIDR cho subnet.');
+      showNotification('error', 'Vui lòng nhập CIDR cho subnet.');
       return;
     }
 
-    setError('');
     setProcessing(true);
     try {
       const createdSubnet = await createSubnet(token, {
@@ -160,7 +247,6 @@ export default function NetworkPage({ token }) {
         network_id: activeNetworkId,
         ip_version: 4,
         cidr: subnetCidr.trim(),
-        enable_dhcp: true
       });
 
       setItems((prev) =>
@@ -176,9 +262,11 @@ export default function NetworkPage({ token }) {
         })
       );
 
+      setSubnetItems((prev) => [createdSubnet, ...prev]);
       setSubnetName('');
+      showNotification('success', 'Thêm subnet thành công!');
     } catch (e) {
-      setError(e.response?.data?.message || 'Không thêm được subnet.');
+      showNotification('error', e.response?.data?.message || 'Không thêm được subnet.');
     } finally {
       setProcessing(false);
     }
@@ -189,8 +277,33 @@ export default function NetworkPage({ token }) {
     return <p>Đang tải network...</p>;
   }
 
-  if (error) {
-    return <p className="error">{error}</p>;
+  async function handleDeleteSubnet(subnetId) {
+    setProcessing(true);
+    try {
+      await deleteSubnet(token, subnetId);
+      setSubnetItems((prev) => prev.filter((item) => item.id !== subnetId));
+      setItems((prev) =>
+        prev.map((network) => {
+          if (network.id !== activeNetworkId) {
+            return network;
+          }
+
+          return {
+            ...network,
+            subnets: (network.subnets || []).filter((id) => id !== subnetId)
+          };
+        })
+      );
+      showNotification('success', 'Xóa subnet thành công!');
+    } catch (e) {
+      showNotification('error', e.response?.data?.message || 'Không xóa được subnet.');
+    } finally {
+      setProcessing(false);
+    }
+  }
+
+  if (loading) {
+    return <p>Đang tải network...</p>;
   }
 
   return (
@@ -198,13 +311,12 @@ export default function NetworkPage({ token }) {
       <h2>Network</h2>
 
       <div className="network-toolbar">
-        <input
-          type="text"
-          placeholder="Tên network mới"
-          value={newNetworkName}
-          onChange={(e) => setNewNetworkName(e.target.value)}
-        />
-        <button type="button" className="btn primary" disabled={processing} onClick={handleAddNetwork}>
+        <button 
+          type="button" 
+          className="btn primary" 
+          disabled={processing} 
+          onClick={() => setShowAddNetworkModal(true)}
+        >
           Thêm network
         </button>
         <button
@@ -216,6 +328,75 @@ export default function NetworkPage({ token }) {
           Xóa network đã chọn
         </button>
       </div>
+
+      {/* Modal thêm network */}
+      {showAddNetworkModal && (
+        <div className="modal-overlay" onClick={() => setShowAddNetworkModal(false)}>
+          <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-header">
+              <h3>Thêm Network Mới</h3>
+              <button 
+                className="modal-close" 
+                onClick={() => setShowAddNetworkModal(false)}
+              >
+                ✕
+              </button>
+            </div>
+
+            <div className="modal-body">
+              <div className="form-group">
+                <label htmlFor="modal-network-name">Tên Network</label>
+                <input
+                  id="modal-network-name"
+                  type="text"
+                  placeholder="Nhập tên network"
+                  value={newNetworkName}
+                  onChange={(e) => setNewNetworkName(e.target.value)}
+                  autoFocus
+                />
+              </div>
+
+              <div className="form-group">
+                <label htmlFor="modal-subnet-name">Tên Subnet (tùy chọn)</label>
+                <input
+                  id="modal-subnet-name"
+                  type="text"
+                  placeholder="Để trống để tự động đặt tên"
+                  value={modalSubnetName}
+                  onChange={(e) => setModalSubnetName(e.target.value)}
+                />
+              </div>
+
+              <div className="form-group">
+                <label htmlFor="modal-subnet-cidr">CIDR Subnet (tùy chọn)</label>
+                <input
+                  id="modal-subnet-cidr"
+                  type="text"
+                  placeholder="vd: 192.168.1.0/24"
+                  value={modalSubnetCidr}
+                  onChange={(e) => setModalSubnetCidr(e.target.value)}
+                />
+              </div>
+            </div>
+
+            <div className="modal-footer">
+              <button 
+                className="btn" 
+                onClick={() => setShowAddNetworkModal(false)}
+              >
+                Hủy
+              </button>
+              <button 
+                className="btn primary" 
+                disabled={processing || !newNetworkName.trim()}
+                onClick={handleAddNetwork}
+              >
+                {processing ? 'Đang xử lý...' : 'Tạo Network'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       <div className="network-layout">
         <div className="network-list">
@@ -320,6 +501,99 @@ export default function NetworkPage({ token }) {
                 <p>
                   <strong>Subnets:</strong> {(activeNetwork.subnets || []).join(', ') || '-'}
                 </p>
+
+                <h3>Danh sách subnet</h3>
+                {!subnetItems.length && <p>Network này chưa có subnet.</p>}
+
+                {!!subnetItems.length && (
+                  <table>
+                    <thead>
+                      <tr>
+                        <th>Tên</th>
+                        <th>CIDR</th>
+                        <th>ID</th>
+                        <th>Thao tác</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {subnetItems.map((subnet) => {
+                        const isEditing = editingSubnetId === subnet.id;
+
+                        return (
+                          <tr key={subnet.id}>
+                            <td>
+                              {isEditing ? (
+                                <input
+                                  type="text"
+                                  value={editSubnetName}
+                                  onChange={(e) => setEditSubnetName(e.target.value)}
+                                />
+                              ) : (
+                                subnet.name || '-'
+                              )}
+                            </td>
+                            <td>
+                              {isEditing ? (
+                                <input
+                                  type="text"
+                                  value={editSubnetCidr}
+                                  onChange={(e) => setEditSubnetCidr(e.target.value)}
+                                />
+                              ) : (
+                                subnet.cidr || '-'
+                              )}
+                            </td>
+                            <td>{subnet.id}</td>
+                            <td>
+                              <div className="inline-form subnet-actions">
+                                {!isEditing && (
+                                  <button
+                                    type="button"
+                                    className="btn"
+                                    disabled={processing}
+                                    onClick={() => startEditSubnet(subnet)}
+                                  >
+                                    Sửa
+                                  </button>
+                                )}
+
+                                {isEditing && (
+                                  <>
+                                    <button
+                                      type="button"
+                                      className="btn"
+                                      disabled={processing}
+                                      onClick={() => handleSaveSubnet(subnet.id)}
+                                    >
+                                      Lưu
+                                    </button>
+                                    <button
+                                      type="button"
+                                      className="btn"
+                                      disabled={processing}
+                                      onClick={cancelEditSubnet}
+                                    >
+                                      Hủy
+                                    </button>
+                                  </>
+                                )}
+
+                                <button
+                                  type="button"
+                                  className="btn"
+                                  disabled={processing}
+                                  onClick={() => handleDeleteSubnet(subnet.id)}
+                                >
+                                  Xóa
+                                </button>
+                              </div>
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                )}
               </div>
             </>
           )}

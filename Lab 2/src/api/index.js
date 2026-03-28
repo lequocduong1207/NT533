@@ -1,12 +1,6 @@
 import axios from 'axios';
 
 const IDENTITY_URL = '/api/identity/v3';
-const COMPUTE_URL = '/api/compute/v2.1';
-const NETWORK_URL = '/api/network/v2.0';
-
-const jsonHeaders = {
-  'Content-Type': 'application/json'
-};
 
 function withQuery(url, query = {}, fields = []) {
   const search = new URLSearchParams();
@@ -58,7 +52,9 @@ export async function fetchCheckToken(username, password) {
       }
     },
     {
-      headers: jsonHeaders
+      headers: {
+        contentType: 'application/json'
+      }
     }
   );
 
