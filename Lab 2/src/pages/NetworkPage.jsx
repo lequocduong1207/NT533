@@ -272,29 +272,9 @@ export default function NetworkPage({ token }) {
     }
   }
 
-  async function handleSaveSubnet(subnetId) {
-    if (!editSubnetCidr.trim()) {
-      showNotification('error', 'CIDR subnet không được để trống.');
-      return;
-    }
 
-    setProcessing(true);
-    try {
-      const updated = await updateSubnet(token, subnetId, {
-        name: editSubnetName.trim(),
-        cidr: editSubnetCidr.trim()
-      });
-
-      setSubnetItems((prev) =>
-        prev.map((item) => (item.id === subnetId ? { ...item, ...updated } : item))
-      );
-      cancelEditSubnet();
-      showNotification('success', 'Cập nhật subnet thành công!');
-    } catch (e) {
-      showNotification('error', e.response?.data?.message || 'Không sửa được subnet.');
-    } finally {
-      setProcessing(false);
-    }
+  if (loading) {
+    return <p>Đang tải network...</p>;
   }
 
   async function handleDeleteSubnet(subnetId) {
@@ -620,27 +600,6 @@ export default function NetworkPage({ token }) {
         </div>
       </div>
 
-      {/* Notification popup */}
-      {notification && (
-        <div className={`notification notification-${notification.type}`}>
-          <div className="notification-content">
-            <span className="notification-icon">
-              {notification.type === 'success' ? '✓' : '✕'}
-            </span>
-            <p className="notification-message">{notification.message}</p>
-          </div>
-        </div>
-      )}
-
-      {/* Processing notification popup */}
-      {processing && (
-        <div className="processing-overlay">
-          <div className="processing-popup">
-            <div className="spinner"></div>
-            <p>Đang xử lý...</p>
-          </div>
-        </div>
-      )}
     </section>
   );
 }

@@ -3,6 +3,8 @@ import { Link, Navigate, Route, Routes, useLocation, useNavigate } from 'react-r
 import { fetchCheckToken } from './api';
 import NetworkPage from './pages/NetworkPage';
 import ComputePage from './pages/ComputePage';
+import FloatingPage from './pages/FloatingPage';
+import RouterPage from './pages/RouterPage';
 
 const TOKEN_STORAGE_KEY = 'lab2_auth_token';
 
@@ -95,6 +97,12 @@ function ProtectedLayout({ token, onLogout }) {
           <Link className={location.pathname.startsWith('/network') ? 'active' : ''} to="/network">
             Network
           </Link>
+          <Link className={location.pathname.startsWith('/floating') ? 'active' : ''} to="/floating">
+            Floating
+          </Link>
+          <Link className={location.pathname.startsWith('/router') ? 'active' : ''} to="/router">
+            Router
+          </Link>
 
           <div className="nav-group">
             <p>Compute</p>
@@ -126,6 +134,8 @@ function ProtectedLayout({ token, onLogout }) {
       <main className="content-panel">
         <Routes>
           <Route path="/network" element={<NetworkPage token={token} />} />
+          <Route path="/floating" element={<FloatingPage token={token} />} />
+          <Route path="/router" element={<RouterPage token={token} />} />
           <Route path="/compute/flavor" element={<ComputePage token={token} view="flavor" />} />
           <Route path="/compute/instance" element={<ComputePage token={token} view="instance" />} />
           <Route path="/compute/image" element={<ComputePage token={token} view="image" />} />
