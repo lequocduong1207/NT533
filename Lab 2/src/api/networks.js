@@ -171,20 +171,43 @@ export async function deleteFloatingIP(token, floatingIpId) {
 
 // Update floating IP (associate/disassociate by port_id)
 export async function updateFloatingIP(token, floatingIpId, payload) {
-  const response = await axios.put(
-    `${NETWORK_URL}/floatingips/${floatingIpId}`,
-    {
-      floatingip: payload
-    },
-    {
-      headers: {
-        ...jsonHeaders,
-        'X-Auth-Token': token
-      }
-    }
-  );
+  const normalizedId = String(floatingIpId || '').trim();
+  if (!normalizedId) {
+    throw new Error('floatingIpId không hợp lệ.');
+  }
 
-  return response.data?.floatingip;
+  const requestBody = {
+    floatingip: payload
+  };
+  const requestConfig = {
+    headers: {
+      ...jsonHeaders,
+      'X-Auth-Token': token
+    }
+  };
+
+  try {
+    const response = await axios.put(
+      `${NETWORK_URL}/floatingips/${encodeURIComponent(normalizedId)}`,
+      requestBody,
+      requestConfig
+    );
+
+    return response.data?.floatingip;
+  } catch (error) {
+    if (error?.response?.status !== 404) {
+      throw error;
+    }
+
+    // Some gateways require a trailing slash for update routes.
+    const retryResponse = await axios.put(
+      `${NETWORK_URL}/floatingips/${encodeURIComponent(normalizedId)}/`,
+      requestBody,
+      requestConfig
+    );
+
+    return retryResponse.data?.floatingip;
+  }
 }
 
 // Fetch ports, optionally filter by device_id (server id)
@@ -381,5 +404,3 @@ export async function removeRouterInterface(token, routerId, payload) {
 
   return response.data?.router;
 }
-
-
