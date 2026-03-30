@@ -154,6 +154,8 @@ function ProtectedLayout({ token, onLogout }) {
       <main className="content-panel">
         <Routes>
           <Route path="/network" element={<NetworkPage token={token} />} />
+          <Route path="/floating" element={<FloatingPage token={token} />} />
+          <Route path="/router" element={<RouterPage token={token} />} />
           <Route path="/compute/flavor" element={<ComputePage token={token} view="flavor" />} />
           <Route path="/compute/instance" element={<ComputePage token={token} view="instance" />} />
           <Route path="/compute/image" element={<ComputePage token={token} view="image" />} />

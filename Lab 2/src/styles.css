@@ -221,17 +221,27 @@ h3 {
   margin: 6px 0;
 }
 
-.detail-info table {
-  margin-top: 8px;
+.popup-message {
+  position: fixed;
+  right: 20px;
+  bottom: 20px;
+  z-index: 999;
+  min-width: 260px;
+  max-width: 420px;
+  padding: 12px 14px;
+  border-radius: 8px;
+  color: #fff;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
+  font-size: 14px;
+  line-height: 1.4;
 }
 
-.subnet-actions {
-  margin-bottom: 0;
-  flex-wrap: wrap;
+.popup-success {
+  background: #16803c;
 }
 
-.subnet-actions .btn {
-  min-width: 64px;
+.popup-error {
+  background: #b42318;
 }
 
 @media (max-width: 960px) {
