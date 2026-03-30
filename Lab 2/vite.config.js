@@ -23,6 +23,12 @@ export default defineConfig({
         changeOrigin: true,
         secure: true,
         rewrite: (path) => path.replace(/^\/api\/network/, '')
+      },
+      '/api/load-balancer': {
+        target: 'https://cloud-loadbalancer.uitiot.vn',
+        changeOrigin: true,
+        secure: true,
+        rewrite: (path) => path.replace(/^\/api\/load-balancer/, '')
       }
     }
   }

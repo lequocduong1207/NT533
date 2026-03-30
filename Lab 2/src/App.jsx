@@ -8,6 +8,7 @@ import SecurityGroupManager from './pages/SecurityGroupManager';
 import FloatingIPManager from './pages/FloatingIPManager';
 import RouterPage from './pages/RouterPage';
 import FloatingPage from './pages/FloatingPage';
+import LoadBalancerManager from './pages/LoadBalancerManager';
 
 const TOKEN_STORAGE_KEY = 'lab2_auth_token';
 
@@ -145,6 +146,12 @@ function ProtectedLayout({ token, onLogout }) {
             >
               Floating IP
             </Link>
+            <Link
+              className={location.pathname.startsWith('/network/load-balancer') ? 'active' : ''}
+              to="/network/load-balancer"
+            >
+              Load Balancer
+            </Link>
           </div>
         </nav>
         <button type="button" className="btn" onClick={onLogout}>
@@ -164,6 +171,7 @@ function ProtectedLayout({ token, onLogout }) {
           <Route path="/network/security-group" element={<SecurityGroupManager token={token} />} />
           <Route path="/network/floating-ip" element={<FloatingIPManager token={token} />} />
           <Route path="/network/router" element={<RouterPage token={token} />} />
+          <Route path="/network/load-balancer" element={<LoadBalancerManager token={token} />} />
           <Route path="/compute" element={<Navigate to="/compute/flavor" replace />} />
           <Route path="*" element={<Navigate to="/network" replace />} />
         </Routes>
