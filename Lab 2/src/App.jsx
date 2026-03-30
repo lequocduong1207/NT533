@@ -7,6 +7,7 @@ import KeypairManager from './pages/KeypairManager';
 import SecurityGroupManager from './pages/SecurityGroupManager';
 import FloatingIPManager from './pages/FloatingIPManager';
 import RouterPage from './pages/RouterPage';
+import FloatingPage from './pages/FloatingPage';
 
 const TOKEN_STORAGE_KEY = 'lab2_auth_token';
 

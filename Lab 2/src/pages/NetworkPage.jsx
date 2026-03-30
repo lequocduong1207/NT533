@@ -278,6 +278,12 @@ export default function NetworkPage({ token }) {
       const updated = await updateSubnet(token, subnetId, {
         name: editSubnetName.trim(),
       });
+    } catch (e) {
+      showNotification('error', e.response?.data?.message || 'Không sửa được tên subnet.');
+    } finally {
+      setProcessing(false);
+    }
+  }
 
   if (loading) {
     return <p>Đang tải network...</p>;

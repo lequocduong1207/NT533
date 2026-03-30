@@ -88,6 +88,11 @@ export default function ComputePage({ token, view }) {
     [images, newImageId]
   );
 
+  const selectedKeypair = useMemo(
+    () => normalizedKeypairs.find((item) => item.name === newKeyPairName) || null,
+    [normalizedKeypairs, newKeyPairName]
+  );
+
   function escapeHtml(value) {
     return String(value || '')
       .replace(/&/g, '&amp;')
@@ -101,17 +106,9 @@ export default function ComputePage({ token, view }) {
     return window.btoa(unescape(encodeURIComponent(content)));
   }
 
-  function buildCloudInit(instanceName) {
+  function buildCloudInit(instanceName, publicKey = null) {
     const safeInstanceName = escapeHtml(instanceName || 'unknown-instance');
-
-    return `#cloud-config
-package_update: true
-runcmd:
-  - [ bash, -c, "grep -q '^nameserver 8.8.8.8$' /etc/resolv.conf || echo 'nameserver 8.8.8.8' >> /etc/resolv.conf" ]
-  - [ bash, -c, "if command -v apt-get >/dev/null 2>&1; then apt-get update -y; apt-get install -y nginx; elif command -v dnf >/dev/null 2>&1; then dnf install -y nginx; elif command -v yum >/dev/null 2>&1; then yum install -y nginx; fi" ]
-  - [ bash, -c, "systemctl enable nginx || true; systemctl restart nginx || true" ]
-  - [ bash, -c, "IP_ADDR=$(hostname -I | awk '{print $1}'); cat > /var/www/html/index.nginx-debian.html <<EOF
-<!doctype html>
+    const htmlContent = `<!doctype html>
 <html>
   <head>
     <meta charset='utf-8' />
@@ -120,11 +117,74 @@ runcmd:
   <body>
     <h1>NT533.Q21.G8</h1>
     <p>Instance: ${safeInstanceName}</p>
-    <p>IP: \${IP_ADDR}</p>
+    <p>IP: __IP_ADDR__</p>
   </body>
-</html>
-EOF" ]
+</html>`;
+    const htmlContentB64 = encodeBase64Utf8(htmlContent);
+    const normalizedPublicKey = publicKey?.replace(/\r?\n/g, '').trim();
+
+    let script = `#cloud-config
+
+# Set DNS FIRST (bootcmd) before package_update
+bootcmd:
+  - |
+    echo "nameserver 8.8.8.8" > /etc/resolv.conf.new
+    echo "nameserver 1.1.1.1" >> /etc/resolv.conf.new
+    if [ -f /etc/resolv.conf ]; then
+      grep -v "^nameserver" /etc/resolv.conf >> /etc/resolv.conf.new 2>/dev/null || true
+    fi
+    mv /etc/resolv.conf.new /etc/resolv.conf
+
+# Update packages
+package_update: true
+package_upgrade: true
+write_files:
+  - path: /var/www/html/index.html
+    owner: root:root
+    permissions: '0644'
+    encoding: b64
+    content: ${htmlContentB64}
 `;
+
+    // Add SSH authorized keys if provided
+    if (normalizedPublicKey) {
+      script += `ssh_authorized_keys:
+  - ${normalizedPublicKey}
+`;
+    }
+
+    script += `runcmd:
+  # Install nginx (multi-distro)
+  - |
+    if command -v apt-get >/dev/null 2>&1; then
+      apt-get install -y nginx
+    elif command -v dnf >/dev/null 2>&1; then
+      dnf install -y nginx
+    elif command -v yum >/dev/null 2>&1; then
+      yum install -y nginx
+    fi
+
+  # Enable and restart SSH
+  - |
+    if systemctl list-unit-files | grep -q "^ssh.service"; then
+      systemctl enable ssh
+      systemctl restart ssh
+    elif systemctl list-unit-files | grep -q "^sshd.service"; then
+      systemctl enable sshd
+      systemctl restart sshd
+    fi
+
+  # Enable and restart nginx
+  - systemctl enable nginx || true
+  - systemctl restart nginx || true
+
+  # Create web page
+  - |
+    IP_ADDR=\$(hostname -I | awk '{print $1}')
+    sed -i "s|__IP_ADDR__|\$IP_ADDR|g" /var/www/html/index.html
+`;
+
+    return script;
   }
 
   function showNotification(type, message) {
@@ -292,7 +352,9 @@ EOF" ]
         security_groups: newSecurityGroupName ? [{ name: newSecurityGroupName }] : undefined
       };
 
-      payload.user_data = encodeBase64Utf8(buildCloudInit(newInstanceName.trim()));
+      payload.user_data = encodeBase64Utf8(
+        buildCloudInit(newInstanceName.trim(), selectedKeypair?.public_key || null)
+      );
 
       if (flavorDisk === 0) {
         payload.block_device_mapping_v2 = [
