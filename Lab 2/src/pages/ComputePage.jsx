@@ -4,23 +4,43 @@ import {
   deleteServers,
   fetchFlavors,
   fetchImages,
+  fetchKeypairs,
   fetchServerDetail,
-  fetchServers
+  fetchServers,
+  startServer
 } from '../api/computes';
-import { fetchNetworks } from '../api/networks';
+import {
+  fetchFloatingIPs,
+  fetchNetworks,
+  fetchPorts,
+  fetchSecurityGroups,
+  updateFloatingIP
+} from '../api/networks';
 
 export default function ComputePage({ token, view }) {
   const [flavors, setFlavors] = useState([]);
   const [images, setImages] = useState([]);
   const [servers, setServers] = useState([]);
   const [networks, setNetworks] = useState([]);
+  const [keypairs, setKeypairs] = useState([]);
+  const [securityGroups, setSecurityGroups] = useState([]);
+  const [floatingIPs, setFloatingIPs] = useState([]);
+
   const [selectedServerIds, setSelectedServerIds] = useState([]);
   const [activeServerId, setActiveServerId] = useState('');
+
   const [showAddInstanceModal, setShowAddInstanceModal] = useState(false);
+  const [showAssociateFloatingIpModal, setShowAssociateFloatingIpModal] = useState(false);
+
   const [newInstanceName, setNewInstanceName] = useState('');
   const [newFlavorId, setNewFlavorId] = useState('');
   const [newImageId, setNewImageId] = useState('');
   const [newNetworkId, setNewNetworkId] = useState('');
+  const [newKeyPairName, setNewKeyPairName] = useState('');
+  const [newSecurityGroupName, setNewSecurityGroupName] = useState('');
+
+  const [selectedFloatingIpId, setSelectedFloatingIpId] = useState('');
+
   const [notification, setNotification] = useState(null);
   const [loading, setLoading] = useState(true);
   const [processing, setProcessing] = useState(false);
@@ -48,6 +68,65 @@ export default function ComputePage({ token, view }) {
     return images.find((item) => item.id === imageId) || null;
   }, [images, activeServer]);
 
+  const availableFloatingIPs = useMemo(
+    () => floatingIPs.filter((fip) => !fip.port_id),
+    [floatingIPs]
+  );
+
+  const normalizedKeypairs = useMemo(
+    () => (keypairs || []).map((item) => item?.keypair || item).filter((item) => item?.name),
+    [keypairs]
+  );
+
+  const selectedFlavor = useMemo(
+    () => flavors.find((flavor) => flavor.id === newFlavorId) || null,
+    [flavors, newFlavorId]
+  );
+
+  const selectedImage = useMemo(
+    () => images.find((image) => image.id === newImageId) || null,
+    [images, newImageId]
+  );
+
+  function escapeHtml(value) {
+    return String(value || '')
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#39;');
+  }
+
+  function encodeBase64Utf8(content) {
+    return window.btoa(unescape(encodeURIComponent(content)));
+  }
+
+  function buildCloudInit(instanceName) {
+    const safeInstanceName = escapeHtml(instanceName || 'unknown-instance');
+
+    return `#cloud-config
+package_update: true
+runcmd:
+  - [ bash, -c, "grep -q '^nameserver 8.8.8.8$' /etc/resolv.conf || echo 'nameserver 8.8.8.8' >> /etc/resolv.conf" ]
+  - [ bash, -c, "if command -v apt-get >/dev/null 2>&1; then apt-get update -y; apt-get install -y nginx; elif command -v dnf >/dev/null 2>&1; then dnf install -y nginx; elif command -v yum >/dev/null 2>&1; then yum install -y nginx; fi" ]
+  - [ bash, -c, "systemctl enable nginx || true; systemctl restart nginx || true" ]
+  - [ bash, -c, "IP_ADDR=$(hostname -I | awk '{print $1}'); cat > /var/www/html/index.nginx-debian.html <<EOF
+<!doctype html>
+<html>
+  <head>
+    <meta charset='utf-8' />
+    <title>NT533 VM</title>
+  </head>
+  <body>
+    <h1>NT533.Q21.G8</h1>
+    <p>Instance: ${safeInstanceName}</p>
+    <p>IP: \${IP_ADDR}</p>
+  </body>
+</html>
+EOF" ]
+`;
+  }
+
   function showNotification(type, message) {
     setNotification({ type, message });
     setTimeout(() => {
@@ -55,18 +134,54 @@ export default function ComputePage({ token, view }) {
     }, 3000);
   }
 
+  function getApiErrorMessage(error, fallbackMessage) {
+    return (
+      error?.response?.data?.forbidden?.message ||
+      error?.response?.data?.badRequest?.message ||
+      error?.response?.data?.conflictingRequest?.message ||
+      error?.response?.data?.message ||
+      error?.message ||
+      fallbackMessage
+    );
+  }
+
   async function loadInstances() {
-    const [serversData, flavorsData, imagesData, networksData] = await Promise.all([
+    const [
+      serversData,
+      flavorsData,
+      imagesData,
+      networksData,
+      keypairsData,
+      securityGroupsData,
+      floatingIPsData
+    ] = await Promise.all([
       fetchServers(token),
       fetchFlavors(token),
       fetchImages(token),
-      fetchNetworks(token)
+      fetchNetworks(token),
+      fetchKeypairs(token),
+      fetchSecurityGroups(token),
+      fetchFloatingIPs(token)
     ]);
 
     setServers(serversData || []);
     setFlavors(flavorsData || []);
     setImages(imagesData || []);
     setNetworks(networksData || []);
+    setKeypairs(keypairsData || []);
+    setSecurityGroups(securityGroupsData || []);
+    setFloatingIPs(floatingIPsData || []);
+
+    const firstKeypairName =
+      (keypairsData || []).map((item) => item?.keypair || item).find((item) => item?.name)?.name || '';
+    if (!newKeyPairName && firstKeypairName) {
+      setNewKeyPairName(firstKeypairName);
+    }
+
+    if (!newSecurityGroupName) {
+      const defaultGroup = (securityGroupsData || []).find((group) => group.name === 'default');
+      setNewSecurityGroupName(defaultGroup?.name || securityGroupsData?.[0]?.name || '');
+    }
 
     if (serversData?.length && !activeServerId) {
       setActiveServerId(serversData[0].id);
@@ -97,7 +212,7 @@ export default function ComputePage({ token, view }) {
         }
       } catch (e) {
         if (mounted) {
-          setError(e.message || 'Không thể tải dữ liệu compute.');
+          setError(e.response?.data?.message || e.message || 'Không thể tải dữ liệu compute.');
         }
       } finally {
         if (mounted) {
@@ -107,6 +222,7 @@ export default function ComputePage({ token, view }) {
     }
 
     load();
+
     return () => {
       mounted = false;
     };
@@ -164,12 +280,36 @@ export default function ComputePage({ token, view }) {
 
     setProcessing(true);
     try {
-      await createServer(token, {
+      const flavorDisk = Number(selectedFlavor?.disk ?? 0);
+      const imageMinDisk = Number(selectedImage?.min_disk ?? selectedImage?.minDisk ?? 0);
+      const volumeSize = Math.max(1, imageMinDisk || 10);
+
+      const payload = {
         name: newInstanceName.trim(),
         flavorRef: newFlavorId,
-        imageRef: newImageId,
-        networks: [{ uuid: newNetworkId }]
-      });
+        networks: [{ uuid: newNetworkId }],
+        key_name: newKeyPairName || undefined,
+        security_groups: newSecurityGroupName ? [{ name: newSecurityGroupName }] : undefined
+      };
+
+      payload.user_data = encodeBase64Utf8(buildCloudInit(newInstanceName.trim()));
+
+      if (flavorDisk === 0) {
+        payload.block_device_mapping_v2 = [
+          {
+            uuid: newImageId,
+            source_type: 'image',
+            destination_type: 'volume',
+            boot_index: 0,
+            delete_on_termination: true,
+            volume_size: volumeSize
+          }
+        ];
+      } else {
+        payload.imageRef = newImageId;
+      }
+
+      await createServer(token, payload);
 
       await loadInstances();
       setShowAddInstanceModal(false);
@@ -177,9 +317,38 @@ export default function ComputePage({ token, view }) {
       setNewFlavorId('');
       setNewImageId('');
       setNewNetworkId('');
-      showNotification('success', 'Tạo instance thành công!');
+      setNewKeyPairName('');
+      showNotification('success', 'Tạo instance thành công! Có thể gắn Floating IP ở nút riêng.');
     } catch (e) {
-      showNotification('error', e.response?.data?.message || 'Không tạo được instance.');
+      showNotification('error', getApiErrorMessage(e, 'Không tạo được instance.'));
+    } finally {
+      setProcessing(false);
+    }
+  }
+
+  async function handleStartInstance() {
+    if (!activeServerId) {
+      showNotification('error', 'Vui lòng chọn instance cần khởi động.');
+      return;
+    }
+
+    const activeServer = servers.find((s) => s.id === activeServerId);
+    if (activeServer?.status !== 'SHUTOFF') {
+      showNotification('error', 'Chỉ có thể khởi động máy ở trạng thái SHUTOFF.');
+      return;
+    }
+
+    setProcessing(true);
+    try {
+      const response = await startServer(token, activeServerId);
+      await loadInstances();
+      if (response) {
+        showNotification('success', 'Khởi động instance thành công!');
+      } else {
+        showNotification('error', 'Không khởi động được instance.');
+      }
+    } catch (e) {
+      showNotification('error', e.response?.data?.message || 'Không khởi động được instance.');
     } finally {
       setProcessing(false);
     }
@@ -211,6 +380,71 @@ export default function ComputePage({ token, view }) {
     }
   }
 
+  async function handleAssociateFloatingIpToActiveServer() {
+    if (!activeServerId) {
+      showNotification('error', 'Vui lòng chọn instance.');
+      return;
+    }
+
+    if (!selectedFloatingIpId) {
+      showNotification('error', 'Vui lòng chọn floating IP.');
+      return;
+    }
+
+    setProcessing(true);
+    try {
+      const ports = await fetchPorts(token, { device_id: activeServerId });
+      const targetPortId = ports?.[0]?.id;
+
+      if (!targetPortId) {
+        showNotification('error', 'Không tìm thấy port của instance để gắn floating IP.');
+        return;
+      }
+
+      await updateFloatingIP(token, selectedFloatingIpId, { port_id: targetPortId });
+      await loadInstances();
+      setShowAssociateFloatingIpModal(false);
+      setSelectedFloatingIpId('');
+      showNotification('success', 'Gắn floating IP thành công!');
+    } catch (e) {
+      showNotification('error', e.response?.data?.message || 'Không gắn được floating IP.');
+    } finally {
+      setProcessing(false);
+    }
+  }
+
+  async function handleDisassociateFloatingIp(floatingIpId) {
+    setProcessing(true);
+    try {
+      await updateFloatingIP(token, floatingIpId, { port_id: null });
+      await loadInstances();
+      showNotification('success', 'Gỡ floating IP thành công!');
+    } catch (e) {
+      showNotification('error', e.response?.data?.message || 'Không gỡ được floating IP.');
+    } finally {
+      setProcessing(false);
+    }
+  }
+
+  function getActiveServerFloatingIps() {
+    if (!activeServerId) {
+      return [];
+    }
+
+    return floatingIPs.filter((floatingIp) => {
+      const attachedServerId =
+        floatingIp?.['port_details']?.device_id || floatingIp?.['port_details']?.device_owner;
+
+      if (attachedServerId && attachedServerId === activeServerId) {
+        return true;
+      }
+
+      const addresses = Object.values(activeServer?.addresses || {}).flat();
+      const hasFixedIp = addresses.some((item) => item.addr && item.addr === floatingIp.fixed_ip_address);
+      return hasFixedIp;
+    });
+  }
+
   function renderAddresses(addresses) {
     const entries = Object.entries(addresses || {});
     if (!entries.length) {
@@ -236,6 +470,8 @@ export default function ComputePage({ token, view }) {
   }
 
   if (view === 'instance') {
+    const activeServerFloatingIps = getActiveServerFloatingIps();
+
     return (
       <section className="network-page">
         <h2>Compute</h2>
@@ -256,6 +492,22 @@ export default function ComputePage({ token, view }) {
             onClick={handleDeleteSelectedInstances}
           >
             Xóa instance đã chọn
+          </button>
+          <button
+            type="button"
+            className="btn"
+            disabled={processing || !activeServer || !availableFloatingIPs.length}
+            onClick={() => setShowAssociateFloatingIpModal(true)}
+          >
+            Gắn Floating IP cho máy đang chọn
+          </button>
+          <button
+            type="button"
+            className="btn"
+            disabled={processing || !activeServer || activeServer?.status !== 'SHUTOFF'}
+            onClick={handleStartInstance}
+          >
+            Khởi động máy
           </button>
         </div>
 
@@ -328,6 +580,38 @@ export default function ComputePage({ token, view }) {
                     ))}
                   </select>
                 </div>
+
+                <div className="form-group">
+                  <label htmlFor="instance-keypair">Keypair (tùy chọn)</label>
+                  <select
+                    id="instance-keypair"
+                    value={newKeyPairName}
+                    onChange={(e) => setNewKeyPairName(e.target.value)}
+                  >
+                    <option value="">Không dùng keypair</option>
+                    {normalizedKeypairs.map((keypair) => (
+                      <option key={keypair.name} value={keypair.name}>
+                        {keypair.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div className="form-group">
+                  <label htmlFor="instance-security-group">Security Group</label>
+                  <select
+                    id="instance-security-group"
+                    value={newSecurityGroupName}
+                    onChange={(e) => setNewSecurityGroupName(e.target.value)}
+                  >
+                    {(securityGroups || []).map((group) => (
+                      <option key={group.id} value={group.name}>
+                        {group.name}
+                      </option>
+                    ))}
+                  </select>
+                  <small>Khuyến nghị dùng default.</small>
+                </div>
               </div>
 
               <div className="modal-footer">
@@ -336,6 +620,50 @@ export default function ComputePage({ token, view }) {
                 </button>
                 <button className="btn primary" disabled={processing} onClick={handleAddInstance}>
                   Tạo instance
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {showAssociateFloatingIpModal && (
+          <div className="modal-overlay" onClick={() => setShowAssociateFloatingIpModal(false)}>
+            <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+              <div className="modal-header">
+                <h3>Gắn Floating IP cho {activeServer?.name || activeServer?.id || 'instance'}</h3>
+                <button className="modal-close" onClick={() => setShowAssociateFloatingIpModal(false)}>
+                  x
+                </button>
+              </div>
+
+              <div className="modal-body">
+                <div className="form-group">
+                  <label htmlFor="associate-floating-ip">Floating IP chưa gắn</label>
+                  <select
+                    id="associate-floating-ip"
+                    value={selectedFloatingIpId}
+                    onChange={(e) => setSelectedFloatingIpId(e.target.value)}
+                  >
+                    <option value="">Chọn floating IP</option>
+                    {availableFloatingIPs.map((fip) => (
+                      <option key={fip.id} value={fip.id}>
+                        {fip.floating_ip_address}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+
+              <div className="modal-footer">
+                <button className="btn" onClick={() => setShowAssociateFloatingIpModal(false)}>
+                  Hủy
+                </button>
+                <button
+                  className="btn primary"
+                  disabled={processing || !selectedFloatingIpId}
+                  onClick={handleAssociateFloatingIpToActiveServer}
+                >
+                  Gắn
                 </button>
               </div>
             </div>
@@ -435,6 +763,48 @@ export default function ComputePage({ token, view }) {
                     <li key={line}>{line}</li>
                   ))}
                 </ul>
+
+                <p>
+                  <strong>Floating IP đang gắn:</strong>
+                </p>
+                {activeServerFloatingIps.length === 0 && <p>-</p>}
+                {activeServerFloatingIps.length > 0 && (
+                  <ul>
+                    {activeServerFloatingIps.map((fip) => (
+                      <li key={fip.id}>
+                        {fip.floating_ip_address}
+                        <button
+                          type="button"
+                          className="btn small"
+                          style={{ marginLeft: '8px' }}
+                          disabled={processing}
+                          onClick={() => handleDisassociateFloatingIp(fip.id)}
+                        >
+                          Gỡ
+                        </button>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+
+                <div style={{ marginTop: '16px' }}>
+                  {activeServer.status === 'SHUTOFF' && (
+                    <button
+                      type="button"
+                      className="btn primary"
+                      disabled={processing}
+                      onClick={handleStartInstance}
+                      style={{ marginRight: '8px' }}
+                    >
+                      Khởi động máy
+                    </button>
+                  )}
+                  {activeServer.status !== 'SHUTOFF' && (
+                    <p style={{ color: '#666', fontSize: '0.9em' }}>
+                      Máy hiện ở trạng thái <strong>{activeServer.status}</strong>. Chỉ có thể khởi động khi ở trạng thái SHUTOFF.
+                    </p>
+                  )}
+                </div>
               </div>
             )}
           </div>

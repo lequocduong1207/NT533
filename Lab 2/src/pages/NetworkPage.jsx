@@ -273,16 +273,10 @@ export default function NetworkPage({ token }) {
   }
 
   async function handleSaveSubnet(subnetId) {
-    if (!editSubnetCidr.trim()) {
-      showNotification('error', 'CIDR subnet không được để trống.');
-      return;
-    }
-
     setProcessing(true);
     try {
       const updated = await updateSubnet(token, subnetId, {
         name: editSubnetName.trim(),
-        cidr: editSubnetCidr.trim()
       });
 
       setSubnetItems((prev) =>
