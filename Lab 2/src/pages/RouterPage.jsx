@@ -1,13 +1,36 @@
 import { useEffect, useRef, useState } from 'react';
-import { createRouter, deleteRouter, fetchRouters } from '../api';
+import {
+  createRouter,
+  deleteRouter,
+  fetchRouters,
+  fetchNetworks,
+  fetchSubnets,
+  addRouterInterface,
+  removeRouterInterface
+} from '../api/networks';
 
 export default function RouterPage({ token }) {
+  // Router Management
   const [routerId, setRouterId] = useState('');
   const [routers, setRouters] = useState([]);
   const [selectedRouterIds, setSelectedRouterIds] = useState([]);
+  const [loadingRouters, setLoadingRouters] = useState(false);
+
+  // Networks & Subnets
+  const [networks, setNetworks] = useState([]);
+  const [subnets, setSubnets] = useState([]);
+
+  // Router Interfaces
+  const [interfaces, setInterfaces] = useState([]);
+  const [selectedSubnetId, setSelectedSubnetId] = useState('');
+  const [loadingInterfaces, setLoadingInterfaces] = useState(false);
+
+  // Modals & Forms
+  const [showCreateRouterModal, setShowCreateRouterModal] = useState(false);
   const [newRouterName, setNewRouterName] = useState('');
   const [newExternalNetworkId, setNewExternalNetworkId] = useState('');
-  const [loadingRouters, setLoadingRouters] = useState(false);
+
+  // UI State
   const [processing, setProcessing] = useState(false);
   const [popup, setPopup] = useState(null);
   const popupTimeoutRef = useRef(null);
@@ -31,10 +54,28 @@ export default function RouterPage({ token }) {
     };
   }, []);
 
+  // Load networks on mount
+  useEffect(() => {
+    async function loadNetworks() {
+      try {
+        const data = await fetchNetworks(token);
+        setNetworks(data || []);
+      } catch (e) {
+        console.error('Failed to load networks:', e);
+      }
+    }
+
+    if (token) {
+      loadNetworks();
+    }
+  }, [token]);
+
+  // Load routers on mount
   async function loadRoutersList(showSuccessMessage = false) {
     setLoadingRouters(true);
     try {
       const data = await fetchRouters(token);
+
       const routerList = data || [];
       setRouters(routerList);
       setSelectedRouterIds((prev) => prev.filter((id) => routerList.some((router) => router.id === id)));
@@ -48,10 +89,10 @@ export default function RouterPage({ token }) {
       }
 
       if (showSuccessMessage) {
-        showPopup('success', 'Tai danh sach router thanh cong.');
+        showPopup('success', 'Tải danh sách router thành công.');
       }
     } catch (e) {
-      showPopup('error', e.response?.data?.message || 'Khong tai duoc danh sach router.');
+      showPopup('error', e.response?.data?.message || 'Không tải được danh sách router.');
     } finally {
       setLoadingRouters(false);
     }
@@ -60,6 +101,57 @@ export default function RouterPage({ token }) {
   useEffect(() => {
     loadRoutersList(false);
   }, [token]);
+
+  const publicNetwork = networks.find(
+    (n) => (n.name || '').toLowerCase() === 'public_net'
+  );
+
+  // Load interfaces when router changes
+  useEffect(() => {
+    async function loadInterfaces() {
+      if (!routerId) {
+        setInterfaces([]);
+        setSelectedSubnetId('');
+        return;
+      }
+
+      setLoadingInterfaces(true);
+      try {
+        const routerDetail = routers.find((r) => r.id === routerId);
+        setInterfaces(routerDetail?.interfaces || []);
+      } catch (e) {
+        console.error('Failed to load interfaces:', e);
+      } finally {
+        setLoadingInterfaces(false);
+      }
+    }
+
+    loadInterfaces();
+  }, [routerId, routers]);
+
+  // Load subnets when networks changes
+  useEffect(() => {
+    async function loadSubnets() {
+      try {
+        const allSubnets = [];
+        for (const network of networks) {
+          try {
+            const subs = await fetchSubnets(token, network.id);
+            allSubnets.push(...(subs || []));
+          } catch (e) {
+            console.error(`Failed to load subnets for network ${network.id}:`, e);
+          }
+        }
+        setSubnets(allSubnets);
+      } catch (e) {
+        console.error('Failed to load subnets:', e);
+      }
+    }
+
+    if (networks.length && token) {
+      loadSubnets();
+    }
+  }, [networks, token]);
 
   function toggleRouterSelection(id, checked) {
     setSelectedRouterIds((prev) => {
@@ -75,7 +167,7 @@ export default function RouterPage({ token }) {
 
   async function handleCreateRouter() {
     if (!newRouterName.trim()) {
-      showPopup('error', 'Vui long nhap ten router.');
+      showPopup('error', 'Vui lòng nhập tên router.');
       return;
     }
 
@@ -86,20 +178,20 @@ export default function RouterPage({ token }) {
         admin_state_up: true
       };
 
-      if (newExternalNetworkId.trim()) {
+      if (publicNetwork || newExternalNetworkId.trim()) {
         payload.external_gateway_info = {
-          network_id: newExternalNetworkId.trim()
+          network_id: newExternalNetworkId.trim() || publicNetwork?.id
         };
       }
 
-      const created = await createRouter(token, payload);
+      await createRouter(token, payload);
       await loadRoutersList(false);
-      setRouterId(created?.id || routerId);
       setNewRouterName('');
       setNewExternalNetworkId('');
-      showPopup('success', 'Tao router thanh cong.');
+      setShowCreateRouterModal(false);
+      showPopup('success', 'Tạo router thành công.');
     } catch (e) {
-      showPopup('error', e.response?.data?.message || 'Khong tao duoc router.');
+      showPopup('error', e.response?.data?.message || 'Không tạo được router.');
     } finally {
       setProcessing(false);
     }
@@ -107,7 +199,7 @@ export default function RouterPage({ token }) {
 
   async function handleDeleteSelectedRouters() {
     if (!selectedRouterIds.length) {
-      showPopup('error', 'Vui long chon router can xoa.');
+      showPopup('error', 'Vui lòng chọn router cần xóa.');
       return;
     }
 
@@ -122,103 +214,280 @@ export default function RouterPage({ token }) {
         setRouterId('');
       }
 
-      showPopup('success', 'Xoa router thanh cong.');
+      showPopup('success', 'Xóa router thành công.');
     } catch (e) {
-      showPopup('error', e.response?.data?.message || 'Khong xoa duoc router.');
+      showPopup('error', e.response?.data?.message || 'Không xóa được router.');
     } finally {
       setProcessing(false);
     }
   }
+
+  async function handleAddInterface() {
+    if (!routerId) {
+      showPopup('error', 'Vui lòng chọn router.');
+      return;
+    }
+
+    if (!selectedSubnetId) {
+      showPopup('error', 'Vui lòng chọn subnet.');
+      return;
+    }
+
+    setProcessing(true);
+    try {
+      await addRouterInterface(token, routerId, {
+        subnet_id: selectedSubnetId
+      });
+
+      await loadRoutersList(false);
+      setSelectedSubnetId('');
+      showPopup('success', 'Thêm interface thành công.');
+    } catch (e) {
+      showPopup('error', e.response?.data?.message || 'Không thêm được interface.');
+    } finally {
+      setProcessing(false);
+    }
+  }
+
+  async function handleRemoveInterface(subnetId) {
+    if (!routerId) {
+      showPopup('error', 'Vui lòng chọn router.');
+      return;
+    }
+
+    setProcessing(true);
+    try {
+      await removeRouterInterface(token, routerId, {
+        subnet_id: subnetId
+      });
+
+      await loadRoutersList(false);
+      showPopup('success', 'Xóa interface thành công.');
+    } catch (e) {
+      showPopup('error', e.response?.data?.message || 'Không xóa được interface.');
+    } finally {
+      setProcessing(false);
+    }
+  }
+
+  const activeRouter = routers.find((r) => r.id === routerId);
 
   return (
     <section className="network-page">
       <h2>Router Management</h2>
 
       <div className="network-toolbar">
-        <select value={routerId} onChange={(e) => setRouterId(e.target.value)}>
-          {!routers.length && <option value="">Khong co router</option>}
-          {routers.map((router) => (
-            <option key={router.id} value={router.id}>
-              {(router.name && `${router.name} - `) || ''}
-              {router.id}
-            </option>
-          ))}
-        </select>
-        <input
-          type="text"
-          placeholder="Router ID"
-          value={routerId}
-          onChange={(e) => setRouterId(e.target.value)}
-        />
-        <button type="button" className="btn" disabled={loadingRouters} onClick={() => loadRoutersList(true)}>
-          {loadingRouters ? 'Dang tai routers...' : 'Reload Routers'}
+        <button
+          type="button"
+          className="btn primary"
+          disabled={processing}
+          onClick={() => {
+            setNewExternalNetworkId(publicNetwork?.id || '');
+            setShowCreateRouterModal(true);
+          }}
+        >
+          Tạo mới Router
+        </button>
+        <button
+          type="button"
+          className="btn"
+          disabled={processing || !selectedRouterIds.length}
+          onClick={handleDeleteSelectedRouters}
+        >
+          Xóa Router Đã Chọn
         </button>
       </div>
 
-      <div className="network-detail">
-        <div className="inline-form subnet-form">
-          <input
-            type="text"
-            placeholder="Ten router moi"
-            value={newRouterName}
-            onChange={(e) => setNewRouterName(e.target.value)}
-          />
-          <input
-            type="text"
-            placeholder="External network ID (optional)"
-            value={newExternalNetworkId}
-            onChange={(e) => setNewExternalNetworkId(e.target.value)}
-          />
-          <button type="button" className="btn primary" disabled={processing} onClick={handleCreateRouter}>
-            Them Router
-          </button>
-          <button
-            type="button"
-            className="btn"
-            disabled={processing || !selectedRouterIds.length}
-            onClick={handleDeleteSelectedRouters}
-          >
-            Xoa Router Da Chon
-          </button>
+      {/* Create Router Modal */}
+      {showCreateRouterModal && (
+        <div className="modal-overlay" onClick={() => setShowCreateRouterModal(false)}>
+          <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-header">
+              <h3>Tạo Router Mới</h3>
+              <button className="modal-close" onClick={() => setShowCreateRouterModal(false)}>
+                ✕
+              </button>
+            </div>
+
+            <div className="modal-body">
+              <div className="form-group">
+                <label htmlFor="router-name">Tên Router</label>
+                <input
+                  id="router-name"
+                  type="text"
+                  placeholder="Nhập tên router"
+                  value={newRouterName}
+                  onChange={(e) => setNewRouterName(e.target.value)}
+                  autoFocus
+                />
+              </div>
+
+              <div className="form-group">
+                <label htmlFor="external-network">External Network</label>
+                <select
+                  id="external-network"
+                  value={newExternalNetworkId}
+                  onChange={(e) => setNewExternalNetworkId(e.target.value)}
+                >
+                  {!publicNetwork && <option value="">Không tìm thấy public_net</option>}
+                  {publicNetwork && (
+                    <option value={publicNetwork.id}>{publicNetwork.name}</option>
+                  )}
+                </select>
+              </div>
+            </div>
+
+            <div className="modal-footer">
+              <button
+                className="btn"
+                onClick={() => setShowCreateRouterModal(false)}
+              >
+                Hủy
+              </button>
+              <button
+                className="btn primary"
+                disabled={processing}
+                onClick={handleCreateRouter}
+              >
+                Tạo Router
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      <div className="network-layout">
+        <div className="network-list">
+          <table>
+            <thead>
+              <tr>
+                <th>Chọn</th>
+                <th>ID</th>
+                <th>Name</th>
+                <th>Status</th>
+                <th>External Network</th>
+              </tr>
+            </thead>
+            <tbody>
+              {routers.map((router) => (
+                <tr
+                  key={router.id}
+                  className={router.id === routerId ? 'row-active' : ''}
+                  onClick={() => setRouterId(router.id)}
+                >
+                  <td onClick={(e) => e.stopPropagation()}>
+                    <input
+                      type="checkbox"
+                      checked={selectedRouterIds.includes(router.id)}
+                      onChange={(e) => toggleRouterSelection(router.id, e.target.checked)}
+                    />
+                  </td>
+                  <td>{router.id}</td>
+                  <td>{router.name || '-'}</td>
+                  <td>{router.status || '-'}</td>
+                  <td>{router.external_gateway_info?.network_id || '-'}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
         </div>
 
-        <table>
-          <thead>
-            <tr>
-              <th>Chon</th>
-              <th>ID</th>
-              <th>Name</th>
-              <th>Status</th>
-              <th>External Network</th>
-            </tr>
-          </thead>
-          <tbody>
-            {routers.map((router) => (
-              <tr
-                key={router.id}
-                className={router.id === routerId ? 'row-active' : ''}
-                onClick={() => setRouterId(router.id)}
-              >
-                <td onClick={(e) => e.stopPropagation()}>
-                  <input
-                    type="checkbox"
-                    checked={selectedRouterIds.includes(router.id)}
-                    onChange={(e) => toggleRouterSelection(router.id, e.target.checked)}
-                  />
-                </td>
-                <td>{router.id}</td>
-                <td>{router.name || '-'}</td>
-                <td>{router.status || '-'}</td>
-                <td>{router.external_gateway_info?.network_id || '-'}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+        <div className="network-detail">
+          {!activeRouter && <p>Chọn một router để xem chi tiết và quản lý interface.</p>}
+
+          {activeRouter && (
+            <div className="detail-info">
+              <h3>Chi tiết Router</h3>
+              <p>
+                <strong>Tên:</strong> {activeRouter.name || '-'}
+              </p>
+              <p>
+                <strong>ID:</strong> {activeRouter.id}
+              </p>
+              <p>
+                <strong>Trạng thái:</strong> {activeRouter.status || '-'}
+              </p>
+              <p>
+                <strong>Admin State:</strong> {activeRouter.admin_state_up ? 'Up' : 'Down'}
+              </p>
+              <p>
+                <strong>External Network:</strong> {activeRouter.external_gateway_info?.network_id || '-'}
+              </p>
+
+              <h4>Quản lý Interfaces</h4>
+              
+              <div className="inline-form subnet-form">
+                <select
+                  value={selectedSubnetId}
+                  onChange={(e) => setSelectedSubnetId(e.target.value)}
+                  disabled={loadingInterfaces}
+                >
+                  <option value="">Chọn subnet để thêm</option>
+                  {subnets.map((subnet) => {
+                    const isAlreadyAdded = interfaces.some((iface) => iface.subnet_id === subnet.id);
+                    return (
+                      <option key={subnet.id} value={subnet.id} disabled={isAlreadyAdded}>
+                        {subnet.name || subnet.id}
+                        {isAlreadyAdded ? ' (đã thêm)' : ''}
+                      </option>
+                    );
+                  })}
+                </select>
+                <button
+                  type="button"
+                  className="btn primary"
+                  disabled={processing || !selectedSubnetId}
+                  onClick={handleAddInterface}
+                >
+                  Thêm Interface
+                </button>
+              </div>
+
+              <h4>Các Interface Hiện Tại</h4>
+              {loadingInterfaces && <p>Đang tải...</p>}
+              {!loadingInterfaces && interfaces.length === 0 && <p>-</p>}
+              {!loadingInterfaces && interfaces.length > 0 && (
+                <table>
+                  <thead>
+                    <tr>
+                      <th>Subnet ID</th>
+                      <th>Port ID</th>
+                      <th>IP Address</th>
+                      <th>Action</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {interfaces.map((iface) => (
+                      <tr key={iface.subnet_id}>
+                        <td>{iface.subnet_id}</td>
+                        <td>{iface.port_id || '-'}</td>
+                        <td>{iface.fixed_ips?.[0]?.ip_address || '-'}</td>
+                        <td>
+                          <button
+                            type="button"
+                            className="btn small"
+                            disabled={processing}
+                            onClick={() => handleRemoveInterface(iface.subnet_id)}
+                          >
+                            Xóa
+                          </button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              )}
+            </div>
+          )}
+        </div>
       </div>
 
       {popup && (
-        <div className={`popup-message popup-${popup.type}`}>
-          <span>{popup.type === 'success' ? 'Thanh cong' : 'That bai'}</span>: {popup.message}
+        <div className={`notification notification-${popup.type}`}>
+          <div className="notification-content">
+            <span className="notification-icon">{popup.type === 'success' ? '✓' : '✕'}</span>
+            <p className="notification-message">{popup.message}</p>
+          </div>
         </div>
       )}
     </section>

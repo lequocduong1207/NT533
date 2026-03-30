@@ -3,7 +3,9 @@ import { Link, Navigate, Route, Routes, useLocation, useNavigate } from 'react-r
 import { fetchCheckToken } from './api';
 import NetworkPage from './pages/NetworkPage';
 import ComputePage from './pages/ComputePage';
-import FloatingPage from './pages/FloatingPage';
+import KeypairManager from './pages/KeypairManager';
+import SecurityGroupManager from './pages/SecurityGroupManager';
+import FloatingIPManager from './pages/FloatingIPManager';
 import RouterPage from './pages/RouterPage';
 
 const TOKEN_STORAGE_KEY = 'lab2_auth_token';
@@ -94,16 +96,6 @@ function ProtectedLayout({ token, onLogout }) {
       <aside className="side-nav">
         <h2>Resources</h2>
         <nav>
-          <Link className={location.pathname.startsWith('/network') ? 'active' : ''} to="/network">
-            Network
-          </Link>
-          <Link className={location.pathname.startsWith('/floating') ? 'active' : ''} to="/floating">
-            Floating
-          </Link>
-          <Link className={location.pathname.startsWith('/router') ? 'active' : ''} to="/router">
-            Router
-          </Link>
-
           <div className="nav-group">
             <p>Compute</p>
             <Link
@@ -124,6 +116,34 @@ function ProtectedLayout({ token, onLogout }) {
             >
               Image
             </Link>
+            <Link
+              className={location.pathname.startsWith('/compute/keypair') ? 'active' : ''}
+              to="/compute/keypair"
+            >
+              Keypair
+            </Link>
+          </div>
+
+          <div className="nav-group">
+            <p>Network Management</p>
+            <Link className={location.pathname === '/network' ? 'active' : ''} to="/network">
+              Network
+            </Link>
+            <Link className={location.pathname === '/network/router' ? 'active' : ''} to="/network/router">
+              Router
+            </Link>
+            <Link
+              className={location.pathname.startsWith('/network/security-group') ? 'active' : ''}
+              to="/network/security-group"
+            >
+              Security Group
+            </Link>
+            <Link
+              className={location.pathname.startsWith('/network/floating-ip') ? 'active' : ''}
+              to="/network/floating-ip"
+            >
+              Floating IP
+            </Link>
           </div>
         </nav>
         <button type="button" className="btn" onClick={onLogout}>
@@ -139,6 +159,10 @@ function ProtectedLayout({ token, onLogout }) {
           <Route path="/compute/flavor" element={<ComputePage token={token} view="flavor" />} />
           <Route path="/compute/instance" element={<ComputePage token={token} view="instance" />} />
           <Route path="/compute/image" element={<ComputePage token={token} view="image" />} />
+          <Route path="/compute/keypair" element={<KeypairManager token={token} />} />
+          <Route path="/network/security-group" element={<SecurityGroupManager token={token} />} />
+          <Route path="/network/floating-ip" element={<FloatingIPManager token={token} />} />
+          <Route path="/network/router" element={<RouterPage token={token} />} />
           <Route path="/compute" element={<Navigate to="/compute/flavor" replace />} />
           <Route path="*" element={<Navigate to="/network" replace />} />
         </Routes>

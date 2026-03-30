@@ -1,0 +1,124 @@
+﻿[2026-03-18 18:00:16] === Monitoring started ===
+[2026-03-18 18:00:16] Target URL: http://192.168.121.156
+[2026-03-18 18:00:16] Iterations: 15
+[2026-03-18 18:00:16] DelaySeconds: 1
+[2026-03-18 18:00:16] TimeoutSec: 10
+[2026-03-18 18:00:16] LogPath: D:\Hệ tính toán phân bố\monitoring.log
+[2026-03-18 18:00:16] Request 1: SUCCESS | Status=200 | Time=53 ms | Backend=192.168.1.101
+[2026-03-18 18:00:17] Request 2: SUCCESS | Status=200 | Time=33 ms | Backend=192.168.1.103
+[2026-03-18 18:00:18] Request 3: SUCCESS | Status=200 | Time=33 ms | Backend=192.168.1.101
+[2026-03-18 18:00:19] Request 4: SUCCESS | Status=200 | Time=30 ms | Backend=192.168.1.103
+[2026-03-18 18:00:20] Request 5: SUCCESS | Status=200 | Time=39 ms | Backend=192.168.1.101
+[2026-03-18 18:00:21] Request 6: SUCCESS | Status=200 | Time=28 ms | Backend=192.168.1.103
+[2026-03-18 18:00:22] Request 7: SUCCESS | Status=200 | Time=37 ms | Backend=192.168.1.101
+[2026-03-18 18:00:23] Request 8: SUCCESS | Status=200 | Time=263 ms | Backend=192.168.1.103
+[2026-03-18 18:00:24] Request 9: SUCCESS | Status=200 | Time=28 ms | Backend=192.168.1.101
+[2026-03-18 18:00:25] Request 10: SUCCESS | Status=200 | Time=29 ms | Backend=192.168.1.103
+[2026-03-18 18:00:26] Request 11: SUCCESS | Status=200 | Time=28 ms | Backend=192.168.1.101
+[2026-03-18 18:00:27] Request 12: SUCCESS | Status=200 | Time=36 ms | Backend=192.168.1.103
+[2026-03-18 18:00:28] Request 13: SUCCESS | Status=200 | Time=32 ms | Backend=192.168.1.101
+[2026-03-18 18:00:30] Request 14: SUCCESS | Status=200 | Time=34 ms | Backend=192.168.1.103
+[2026-03-18 18:00:31] Request 15: SUCCESS | Status=200 | Time=43 ms | Backend=192.168.1.101
+[2026-03-18 18:00:31] === Monitoring summary ===
+[2026-03-18 18:00:31] Total requests: 15
+[2026-03-18 18:00:31] Successful requests: 15
+[2026-03-18 18:00:31] Failed requests: 0
+[2026-03-18 18:00:31] Backend distribution:
+[2026-03-18 18:00:31] 192.168.1.101 = 8
+[2026-03-18 18:00:31] 192.168.1.103 = 7
+[2026-03-18 18:00:31] === Monitoring finished ===
+[2026-03-18 18:01:44] === Monitoring started ===
+[2026-03-18 18:01:44] Target URL: http://192.168.121.156
+[2026-03-18 18:01:44] Iterations: 15
+[2026-03-18 18:01:44] DelaySeconds: 1
+[2026-03-18 18:01:44] TimeoutSec: 10
+[2026-03-18 18:01:44] LogPath: D:\Hệ tính toán phân bố\monitoring.log
+[2026-03-18 18:01:48] === Monitoring started ===
+[2026-03-18 18:01:48] Target URL: http://192.168.121.156
+[2026-03-18 18:01:48] Iterations: 15
+[2026-03-18 18:01:48] DelaySeconds: 1
+[2026-03-18 18:01:48] TimeoutSec: 10
+[2026-03-18 18:01:48] LogPath: D:\Hệ tính toán phân bố\monitoring.log
+[2026-03-18 18:01:48] Request 1: SUCCESS | Status=200 | Time=32 ms | Backend=192.168.1.101
+[2026-03-18 18:01:49] Request 2: SUCCESS | Status=200 | Time=28 ms | Backend=192.168.1.103
+[2026-03-18 18:01:50] Request 3: SUCCESS | Status=200 | Time=36 ms | Backend=192.168.1.101
+[2026-03-18 18:01:51] Request 4: SUCCESS | Status=200 | Time=38 ms | Backend=192.168.1.103
+[2026-03-18 18:01:52] Request 5: SUCCESS | Status=200 | Time=28 ms | Backend=192.168.1.102
+[2026-03-18 18:01:53] Request 6: SUCCESS | Status=200 | Time=26 ms | Backend=192.168.1.101
+[2026-03-18 18:01:54] Request 7: SUCCESS | Status=200 | Time=31 ms | Backend=192.168.1.103
+[2026-03-18 18:01:55] Request 8: SUCCESS | Status=200 | Time=31 ms | Backend=192.168.1.102
+[2026-03-18 18:01:56] Request 9: SUCCESS | Status=200 | Time=28 ms | Backend=192.168.1.101
+[2026-03-18 18:01:57] Request 10: SUCCESS | Status=200 | Time=32 ms | Backend=192.168.1.103
+[2026-03-18 18:01:58] Request 11: SUCCESS | Status=200 | Time=36 ms | Backend=192.168.1.102
+[2026-03-18 18:02:00] Request 12: SUCCESS | Status=200 | Time=30 ms | Backend=192.168.1.101
+[2026-03-18 18:02:01] Request 13: SUCCESS | Status=200 | Time=35 ms | Backend=192.168.1.103
+[2026-03-18 18:02:02] Request 14: SUCCESS | Status=200 | Time=32 ms | Backend=192.168.1.102
+[2026-03-18 18:02:03] Request 15: SUCCESS | Status=200 | Time=27 ms | Backend=192.168.1.101
+[2026-03-18 18:02:03] === Monitoring summary ===
+[2026-03-18 18:02:03] Total requests: 15
+[2026-03-18 18:02:03] Successful requests: 15
+[2026-03-18 18:02:03] Failed requests: 0
+[2026-03-18 18:02:03] Backend distribution:
+[2026-03-18 18:02:03] 192.168.1.101 = 6
+[2026-03-18 18:02:03] 192.168.1.102 = 4
+[2026-03-18 18:02:03] 192.168.1.103 = 5
+[2026-03-18 18:02:03] === Monitoring finished ===
+[2026-03-18 18:02:08] === Monitoring started ===
+[2026-03-18 18:02:08] Target URL: http://192.168.121.156
+[2026-03-18 18:02:08] Iterations: 15
+[2026-03-18 18:02:08] DelaySeconds: 1
+[2026-03-18 18:02:08] TimeoutSec: 10
+[2026-03-18 18:02:08] LogPath: D:\Hệ tính toán phân bố\monitoring.log
+[2026-03-18 18:02:08] Request 1: SUCCESS | Status=200 | Time=28 ms | Backend=192.168.1.103
+[2026-03-18 18:02:09] Request 2: SUCCESS | Status=200 | Time=35 ms | Backend=192.168.1.102
+[2026-03-18 18:02:10] Request 3: SUCCESS | Status=200 | Time=27 ms | Backend=192.168.1.101
+[2026-03-18 18:02:11] Request 4: SUCCESS | Status=200 | Time=32 ms | Backend=192.168.1.103
+[2026-03-18 18:02:12] Request 5: SUCCESS | Status=200 | Time=33 ms | Backend=192.168.1.102
+[2026-03-18 18:02:13] Request 6: SUCCESS | Status=200 | Time=26 ms | Backend=192.168.1.101
+[2026-03-18 18:02:14] Request 7: SUCCESS | Status=200 | Time=42 ms | Backend=192.168.1.103
+[2026-03-18 18:02:15] Request 8: SUCCESS | Status=200 | Time=30 ms | Backend=192.168.1.102
+[2026-03-18 18:02:16] Request 9: SUCCESS | Status=200 | Time=37 ms | Backend=192.168.1.101
+[2026-03-18 18:02:17] Request 10: SUCCESS | Status=200 | Time=40 ms | Backend=192.168.1.103
+[2026-03-18 18:02:18] Request 11: SUCCESS | Status=200 | Time=39 ms | Backend=192.168.1.102
+[2026-03-18 18:02:19] Request 12: SUCCESS | Status=200 | Time=30 ms | Backend=192.168.1.101
+[2026-03-18 18:02:20] Request 13: SUCCESS | Status=200 | Time=38 ms | Backend=192.168.1.103
+[2026-03-18 18:02:21] Request 14: SUCCESS | Status=200 | Time=32 ms | Backend=192.168.1.102
+[2026-03-18 18:02:22] Request 15: SUCCESS | Status=200 | Time=36 ms | Backend=192.168.1.101
+[2026-03-18 18:02:22] === Monitoring summary ===
+[2026-03-18 18:02:22] Total requests: 15
+[2026-03-18 18:02:22] Successful requests: 15
+[2026-03-18 18:02:22] Failed requests: 0
+[2026-03-18 18:02:22] Backend distribution:
+[2026-03-18 18:02:22] 192.168.1.101 = 5
+[2026-03-18 18:02:22] 192.168.1.102 = 5
+[2026-03-18 18:02:22] 192.168.1.103 = 5
+[2026-03-18 18:02:22] === Monitoring finished ===
+[2026-03-18 18:02:48] === Monitoring started ===
+[2026-03-18 18:02:48] Target URL: http://192.168.121.156
+[2026-03-18 18:02:48] Iterations: 15
+[2026-03-18 18:02:48] DelaySeconds: 1
+[2026-03-18 18:02:48] TimeoutSec: 10
+[2026-03-18 18:02:48] LogPath: D:\Hệ tính toán phân bố\monitoring.log
+[2026-03-18 18:02:48] Request 1: SUCCESS | Status=200 | Time=39 ms | Backend=192.168.1.103
+[2026-03-18 18:02:54] Request 2: SUCCESS | Status=200 | Time=5042 ms | Backend=192.168.1.101
+[2026-03-18 18:02:55] Request 3: SUCCESS | Status=200 | Time=36 ms | Backend=192.168.1.103
+[2026-03-18 18:03:01] Request 4: SUCCESS | Status=200 | Time=5046 ms | Backend=192.168.1.101
+[2026-03-18 18:03:02] Request 5: SUCCESS | Status=200 | Time=30 ms | Backend=192.168.1.103
+[2026-03-18 18:03:08] Request 6: SUCCESS | Status=200 | Time=5052 ms | Backend=192.168.1.101
+[2026-03-18 18:03:09] Request 7: SUCCESS | Status=200 | Time=33 ms | Backend=192.168.1.103
+[2026-03-18 18:03:10] Request 8: SUCCESS | Status=200 | Time=37 ms | Backend=192.168.1.101
+[2026-03-18 18:03:11] Request 9: SUCCESS | Status=200 | Time=27 ms | Backend=192.168.1.103
+[2026-03-18 18:03:12] Request 10: SUCCESS | Status=200 | Time=28 ms | Backend=192.168.1.101
+[2026-03-18 18:03:13] Request 11: SUCCESS | Status=200 | Time=34 ms | Backend=192.168.1.103
+[2026-03-18 18:03:14] Request 12: SUCCESS | Status=200 | Time=41 ms | Backend=192.168.1.101
+[2026-03-18 18:03:15] Request 13: SUCCESS | Status=200 | Time=33 ms | Backend=192.168.1.103
+[2026-03-18 18:03:16] Request 14: SUCCESS | Status=200 | Time=26 ms | Backend=192.168.1.101
+[2026-03-18 18:03:17] Request 15: SUCCESS | Status=200 | Time=38 ms | Backend=192.168.1.103
+[2026-03-18 18:03:17] === Monitoring summary ===
+[2026-03-18 18:03:17] Total requests: 15
+[2026-03-18 18:03:17] Successful requests: 15
+[2026-03-18 18:03:18] Failed requests: 0
+[2026-03-18 18:03:18] Backend distribution:
+[2026-03-18 18:03:18] 192.168.1.101 = 7
+[2026-03-18 18:03:18] 192.168.1.103 = 8
+[2026-03-18 18:03:18] === Monitoring finished ===

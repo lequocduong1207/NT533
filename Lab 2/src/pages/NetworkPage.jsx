@@ -272,6 +272,12 @@ export default function NetworkPage({ token }) {
     }
   }
 
+  async function handleSaveSubnet(subnetId) {
+    setProcessing(true);
+    try {
+      const updated = await updateSubnet(token, subnetId, {
+        name: editSubnetName.trim(),
+      });
 
   if (loading) {
     return <p>Đang tải network...</p>;
