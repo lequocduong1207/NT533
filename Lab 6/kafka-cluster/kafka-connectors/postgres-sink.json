@@ -1,0 +1,34 @@
+{
+  "name": "postgres-sink",
+  "config": {
+    "connector.class": "io.debezium.connector.jdbc.JdbcSinkConnector",
+    "tasks.max": "1",
+
+    "topics": "mysql.sourcedb.users,mysql.sourcedb.tags,mysql.sourcedb.posts,mysql.sourcedb.comments",
+
+    "connection.url": "jdbc:postgresql://postgres:5432/targetdb",
+    "connection.username": "lab6_pg",
+    "connection.password": "12345",
+
+    "insert.mode": "upsert",
+    "primary.key.mode": "record_key",
+    "delete.enabled": "true",
+    "schema.evolution": "basic",
+
+    "errors.tolerance": "all",
+    "errors.deadletterqueue.topic.name": "dlq.sink.errors",
+    "errors.deadletterqueue.topic.replication.factor": "1",
+    "errors.log.enable": "true",
+    "errors.log.include.messages": "true",
+
+    "transforms": "route",
+    "transforms.route.type": "org.apache.kafka.connect.transforms.RegexRouter",
+    "transforms.route.regex": "mysql\\.sourcedb\\.(.*)",
+    "transforms.route.replacement": "$1",
+
+    "key.converter": "org.apache.kafka.connect.json.JsonConverter",
+    "value.converter": "org.apache.kafka.connect.json.JsonConverter",
+    "key.converter.schemas.enable": "true",
+    "value.converter.schemas.enable": "true"
+  }
+}
