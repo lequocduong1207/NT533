@@ -117,6 +117,27 @@ Lab 5 triển khai một Kafka KRaft cluster gồm 3 broker trên Docker Compose
 
 ---
 
+## Lab 6 — CDC và Kafka Connect
+
+### Nội dung
+
+Lab 6 thực hành mô hình Change Data Capture (CDC) sử dụng Debezium để đẩy thay đổi từ MySQL vào Kafka, sau đó dùng Kafka Connect Sink để ghi dữ liệu vào PostgreSQL. Thực hành bao gồm cấu hình Docker Compose, connector source/sink và kiểm tra toàn vẹn dữ liệu.
+
+### Những việc đã thực hiện
+
+- Dựng môi trường demo gồm MySQL (source), Kafka, Kafka Connect, Postgres (target) bằng Docker Compose.
+- Cấu hình Debezium MySQL Source Connector để đọc binlog và phát sự kiện thay đổi vào Kafka.
+- Cấu hình JDBC Sink Connector để ghi sự kiện vào PostgreSQL và kiểm tra tính nhất quán dữ liệu.
+- Viết script kiểm tra (`scripts/check.py`) để đối chiếu số dòng, ràng buộc khóa ngoại và kiểm tra CDC realtime.
+
+### Kiến thức thu được
+
+- Hiểu luồng CDC: binlog → Debezium → Kafka → Connect Sink → database target.
+- Biết cấu hình connector, mapping schema và xử lý vấn đề trùng lặp/ordering khi replicate dữ liệu.
+- Kinh nghiệm chạy thử CDC trong môi trường container và kiểm tra toàn vẹn dữ liệu sau replicate.
+
+---
+
 ## Tổng Kết
 
 Sau 5 lab, những mảng kiến thức chính được củng cố bao gồm:
@@ -128,6 +149,7 @@ Sau 5 lab, những mảng kiến thức chính được củng cố bao gồm:
 | Lab 3 | Container Orchestration | k3s, Kubernetes, deploy ứng dụng |
 | Lab 4 | Distributed Storage | Benchmark, phân tích dữ liệu Python |
 | Lab 5 | Streaming Platform | Kafka KRaft, SASL_SSL, ACL |
+| Lab 6 | CDC & Kafka Connect | Debezium, Kafka Connect, MySQL→Postgres replication |
 
 Điểm chung xuyên suốt cả 5 lab là tư duy vận hành hệ thống phân tán trong thực tế — không chỉ dừng lại ở lý thuyết mà phải xử lý được các lỗi phát sinh, hiểu nguyên nhân và tìm cách khắc phục từng bước.
 
@@ -140,5 +162,6 @@ Sau 5 lab, những mảng kiến thức chính được củng cố bao gồm:
 - [Lab 3](Lab%203/)
 - [Lab 4](Lab%204/)
 - [Lab 5](Lab%205/)
+ - [Lab 6](Lab%206/)
 
 ---
